@@ -1,0 +1,7 @@
+
+Pillow
+requests
+beautifulsoup4
+thefuzz
+pymupdf
+lxml
