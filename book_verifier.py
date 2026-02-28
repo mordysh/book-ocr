@@ -148,24 +148,33 @@ def rename_and_sidecar(old_path, metadata, accuracy, do_rename=False):
     new_name = f"{clean_author} - {clean_title}{ext}"
     new_path = os.path.join(directory, new_name)
     
-    # Sidecar file
-    sidecar_path = old_path + ".metadata.json"
-    with open(sidecar_path, 'w', encoding='utf-8') as f:
-        json.dump({
-            "ocr_metadata": metadata,
-            "accuracy_score": accuracy,
-            "original_filename": os.path.basename(old_path)
-        }, f, ensure_ascii=False, indent=4)
-    log(2, f"Created sidecar: {os.path.basename(sidecar_path)}")
+    final_path = old_path
+    renamed = False
 
-    if do_rename and accuracy > 85 and not os.path.exists(new_path):
+    if do_rename and accuracy > 85 and not os.path.exists(new_path) and old_path != new_path:
         try:
             os.rename(old_path, new_path)
             log(1, f"Renamed to: {new_name}")
-            return new_path
+            final_path = new_path
+            renamed = True
         except Exception as e:
             log(1, f"Rename error: {e}")
-    return old_path
+
+    # Create sidecar file using the final path
+    sidecar_path = final_path + ".metadata.json"
+    try:
+        with open(sidecar_path, 'w', encoding='utf-8') as f:
+            json.dump({
+                "ocr_metadata": metadata,
+                "accuracy_score": accuracy,
+                "original_filename": os.path.basename(old_path) if renamed else None,
+                "renamed": renamed
+            }, f, ensure_ascii=False, indent=4)
+        log(2, f"Created sidecar: {os.path.basename(sidecar_path)}")
+    except Exception as e:
+        log(1, f"Sidecar error: {e}")
+
+    return final_path
 
 def main():
     parser = argparse.ArgumentParser(description="Hebrew Book OCR and Verification Tool")
