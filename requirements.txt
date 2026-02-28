@@ -1,7 +1,5 @@
-
 Pillow
 requests
-beautifulsoup4
 thefuzz
+python-Levenshtein
 pymupdf
-lxml

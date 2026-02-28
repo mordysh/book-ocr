@@ -1,13 +1,15 @@
-
 # Hebrew Book OCR & Verification Tool
 
-A local Python utility designed to extract Hebrew book titles and authors from cover images, PDFs, and EPUB files using Vision-Language Models (VLM). It then generates verification links to popular Hebrew book retailers and databases.
+A local Python utility designed to extract Hebrew book titles and authors from cover images, PDFs, and EPUB files using Vision-Language Models (VLM). It then generates verification links and sidecar metadata for Calibre libraries or local directories.
 
 ## Features
 - **Local OCR:** Uses Llama 3.2 Vision (11B) via [Ollama](https://ollama.com/) for high-quality Hebrew text extraction.
 - **Multi-format Support:** Handles `.jpg`, `.png`, `.pdf`, and `.epub` (automatically extracts the first page/cover).
+- **Calibre Integration:** Directly query a Calibre library via `calibredb` to verify and rename existing books.
+- **Smart Renaming:** Conditionally rename files based on OCR confidence (using fuzzy string matching with a default 85% safety threshold).
+- **Sidecar Metadata:** Generates `.metadata.json` sidecar files containing OCR results and accuracy scores.
 - **Online Verification:** Generates search links for **e-vrit**, **Steimatzky**, and **Simania**.
-- **Verbosity Levels:** Control log output with `-v1`, `-v2`, or `-v3`.
+- **Configurable Verbosity:** Control log output with `-v1` or `-v2`.
 
 ## Prerequisites
 1. **Ollama:** [Download and install Ollama](https://ollama.com/).
@@ -15,6 +17,7 @@ A local Python utility designed to extract Hebrew book titles and authors from c
    ```bash
    ollama pull llama3.2-vision:11b
    ```
+3. **Calibre CLI (Optional):** If using `--calibre-db`, ensure `calibredb` is in your system PATH.
 
 ## Installation
 1. Clone the repository:
@@ -33,16 +36,29 @@ A local Python utility designed to extract Hebrew book titles and authors from c
    ```
 
 ## Usage
-Run the script on a file or a directory:
-```bash
-# Basic usage
-python3 book_verifier.py path/to/my_books/
+Run the script on a local directory, file, or a Calibre library.
 
-# With high verbosity (shows more steps)
-python3 book_verifier.py -v2 "~/Downloads/Telegram Desktop/"
+### Local Files
+```bash
+# Process a single file
+python3 book_verifier.py path/to/book.epub
+
+# Process a directory with verbose output
+python3 book_verifier.py -v2 "~/Downloads/MyBooks/"
+```
+
+### Calibre Library
+```bash
+# Verify books in a Calibre library matching a title regex
+python3 book_verifier.py --calibre-db "~/Desktop/books/ebooks_temp2/" --title-regex "חוכמת"
+
+# Perform conditional renaming for high-confidence matches (>85%)
+python3 book_verifier.py --calibre-db "~/Desktop/books/ebooks_temp2/" --rename
 ```
 
 ## How it Works
-1. **Extraction:** If the input is a PDF or EPUB, `PyMuPDF` (fitz) extracts the first page as an image.
-2. **OCR:** The image is sent to the local Ollama instance for Hebrew metadata extraction.
-3. **Link Generation:** The extracted title and author are used to build search queries for verified Hebrew book sites.
+1. **Extraction:** If the input is a PDF or EPUB, `PyMuPDF` (fitz) extracts the first page. If a Calibre `cover.jpg` exists in the folder, it is preferred.
+2. **OCR:** The image is sent to the local Ollama instance with a prompt optimized for Hebrew metadata extraction.
+3. **Accuracy & Sidecars:** The tool compares OCR results against the filename (or Calibre metadata) using fuzzy matching. A `.metadata.json` sidecar is created for every processed file.
+4. **Renaming:** If the `--rename` flag is present and the accuracy exceeds 85%, the file is renamed to a clean `Author - Title.ext` format.
+5. **Link Generation:** Generates direct search queries for Hebrew retailers to facilitate manual verification.
